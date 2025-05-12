@@ -1,6 +1,9 @@
 .page {
 	display: flex;
 	padding: 1em;
+	align-items: flex-start;
+	flex-wrap: wrap;
+	gap: 2em;
 }
 
 .row {
@@ -41,4 +44,13 @@
 
 .sortdirection {
 	width: .5em;
+}
+
+.chart {
+	flex: 1;
+	min-width: min(40em, 100vw);
+}
+
+.chartcontainer {
+	height: 20em;
 }

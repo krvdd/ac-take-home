@@ -1,6 +1,9 @@
 'use client';
 import styles from "./page.module.css";
 import { useState, useEffect } from 'react';
+import { Line } from 'react-chartjs-2';
+import { Chart } from 'chart.js/auto'; 
+import Papa from 'papaparse';
 
 
 // api wrappers
@@ -30,7 +33,7 @@ function deletePowerplant(id) {
 }
 
 
-// components
+// table
 
 function TextInput({value, valueSet, validate, placeholder}) {
 	const cls = !validate || validate(value) ? '' : styles.invalid;
@@ -182,19 +185,60 @@ function PowerplantList({}) {
 }
 
 
+// chart
+
+function parse_csv(file) {
+	return new Promise((resolve, reject) => {
+		const config = {
+			header: true,
+			skipEmptyLines: 'greedy',
+			complete: (results, file) => resolve(results),
+			error: (error, file) => reject(error),
+		};
+		Papa.parse(file, config);
+	});
+}
+
+function PlantChart({}) {
+	
+	const [data, dataChanged] = useState([]);
+	
+	const options = {
+		maintainAspectRatio: false,
+		responsive: true,
+	};
+	
+	function handleFile(e) {
+		for(const file of e.target.files)
+			parse_csv(file).then((result) => {
+				const power = result.data.map(({timestamp, active_power_kW}) => ({x: timestamp, y: active_power_kW}));
+				const energy = result.data.map(({timestamp, energy_kWh}) => ({x: timestamp, y: energy_kWh}));
+				dataChanged([{label: file.name, data: power}]);
+			});
+	}
+	
+	return <div className={styles.chart}>
+		<input type="file" onChange={handleFile}/>
+		<div className={styles.chartcontainer}>
+			<Line
+				datasetIdKey='id'
+				options={options}
+				data={{
+					datasets: data
+				}}/>
+		</div>
+	</div>;
+}
+
+
 // page
 
 export default function Home() {
 	
 	return (
 		<div className={styles.page}>
-			
-			<main className={styles.main}>
-				<PowerplantList/>
-			</main>
-			
-			<footer className={styles.footer}>
-			</footer>
+			<PowerplantList/>
+			<PlantChart/>
 		</div>
 	);
 }
