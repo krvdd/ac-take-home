@@ -53,7 +53,7 @@ function EditPowerplant({ plantData, ok, cancel }) {
 	}
 	
 	return (
-		<div className={styles.plant}>
+		<div className={styles.row}>
 			<TextInput value={name} valueSet={nameSet} placeholder="Name..."/>
 			<TextInput value={power} valueSet={powerSet} validate={validate} placeholder="0"/>
 			<button onClick={handleSubmit}>{shouldCancel ? 'cancel' : 'save'}</button>
@@ -99,16 +99,20 @@ function Powerplant({ refresh, plantData }) {
 		return <EditPowerplant plantData={plantData} ok={ok} cancel={cancel}/>
 	
 	return (
-		<div className={styles.plant}>
+		<div className={styles.row}>
 			<div>{plantData.name}</div>
 			<div>{plantData.power}</div>
 			<div className={styles.options}>
 				<button onClick={() => editingSet(true)}>edit</button>
 				<button onClick={handleDelete}>delete</button>
-				<button>{'\u2261'}</button>
 			</div>
 		</div>
 	);
+}
+
+function SortDirectionIndicator({active, ascending}) {
+	const dir = ascending ? '\u028C' : 'v';
+	return <div className={styles.sortdirection}>{active ? dir : '\u2261'}</div>
 }
 
 function PowerplantList({}) {
@@ -159,11 +163,7 @@ function PowerplantList({}) {
 				setOrder(column, preferAscending);
 		}
 		
-		let direction = "";
-		if(sortkey === column)
-			direction = sortAscending ? "^" : "v"
-		
-		return <button onClick={toggle}>{text} {direction}</button>;
+		return <button className={styles.sortbutton} onClick={toggle}>{text}<SortDirectionIndicator active={sortkey === column} ascending={sortAscending}/></button>;
 	}
 	
 	let cls = styles.plants;
@@ -171,7 +171,7 @@ function PowerplantList({}) {
 	
 	return (
 		<div className={cls}>
-			<div className={styles.tablehead}>
+			<div className={styles.row}>
 				<SortButton text="Name" column="name" preferAscending={true}/>
 				<SortButton text="Nominal power" column="power" preferAscending={false}/>
 			</div>
