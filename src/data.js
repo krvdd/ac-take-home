@@ -9,9 +9,8 @@ const plantSchema = {
 	properties: {
 		name: { type: 'string' },
 		power: { type: 'number' },
-		energy: { type: 'number' },
 	},
-	required: ['name', 'power', 'energy'],
+	required: ['name', 'power'],
 };
 
 const plantValid = ajv.compile(plantSchema);
@@ -21,8 +20,7 @@ db.serialize(() => {
 		CREATE TABLE IF NOT EXISTS plants (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
-			power REAL NOT NULL,
-			energy REAL NOT NULL)`);
+			power REAL NOT NULL)`);
 });
 
 function validatePlant(plant) {
@@ -31,13 +29,11 @@ function validatePlant(plant) {
 	return plant;
 }
 
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-
 function run(sql, params = []) {
 	return new Promise((resolve, reject) => {
 		db.run(sql, params, function(err) {
 			if(err) return reject(err);
-			delay(0).then(() => resolve(this));
+			resolve(this);
 		});
 	});
 }
@@ -46,7 +42,7 @@ function getAll(sql, params = []) {
 	return new Promise((resolve, reject) => {
 		db.all(sql, params, (err, rows) => {
 			if(err) return reject(err);
-			delay(0).then(() => resolve(rows));
+			resolve(rows);
 		});
 	});
 }
@@ -56,18 +52,18 @@ export function get_plants() {
 }
 
 export function add_plant(plant) {
-	const { name, power, energy } = validatePlant(plant);
+	const { name, power } = validatePlant(plant);
 	return run(
-		`INSERT INTO plants (name, power, energy) VALUES (?, ?, ?)`,
-		[name, power, energy]
+		`INSERT INTO plants (name, power) VALUES (?, ?)`,
+		[name, power]
 	);
 }
 
 export function put_plant(id, plant) {
-	const { name, power, energy } = validatePlant(plant);
+	const { name, power } = validatePlant(plant);
 	return run(
-		`UPDATE plants SET name = ?, power = ?, energy = ? WHERE id = ?`,
-		[name, power, energy, id]
+		`UPDATE plants SET name = ?, power = ? WHERE id = ?`,
+		[name, power, id]
 	);
 }
 

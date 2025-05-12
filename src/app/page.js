@@ -40,9 +40,8 @@ function TextInput({value, valueSet, validate, placeholder}) {
 function EditPowerplant({ plantData, ok, cancel }) {
 	const [name, nameSet] = useState(plantData.name);
 	const [power, powerSet] = useState(plantData.power);
-	const [energy, energySet] = useState(plantData.energy);
 	
-	const shouldCancel = !name || isNaN(power) || isNaN(energy) || (name == plantData.name && power == plantData.power && energy == plantData.energy);
+	const shouldCancel = !name || isNaN(power) || (name == plantData.name && power == plantData.power);
 	
 	function validate(v) {
 		return !isNaN(v);
@@ -50,14 +49,13 @@ function EditPowerplant({ plantData, ok, cancel }) {
 	
 	function handleSubmit() {
 		if(shouldCancel) cancel();
-		else ok({name, power: Number(power), energy: Number(energy)});
+		else ok({name, power: Number(power)});
 	}
 	
 	return (
 		<div className={styles.plant}>
 			<TextInput value={name} valueSet={nameSet} placeholder="Name..."/>
 			<TextInput value={power} valueSet={powerSet} validate={validate} placeholder="0"/>
-			<TextInput value={energy} valueSet={energySet} validate={validate} placeholder="0"/>
 			<button onClick={handleSubmit}>{shouldCancel ? 'cancel' : 'save'}</button>
 		</div>
 	);
@@ -76,7 +74,7 @@ function AddPowerplant({ refresh }) {
 	}
 	
 	if(adding)
-		return <EditPowerplant plantData={{name: '', power: '', energy: ''}} ok={ok} cancel={cancel}/>
+		return <EditPowerplant plantData={{name: '', power: ''}} ok={ok} cancel={cancel}/>
 	
 	return <button onClick={() => addingSet(true)}>add</button>;
 }
@@ -104,7 +102,6 @@ function Powerplant({ refresh, plantData }) {
 		<div className={styles.plant}>
 			<div>{plantData.name}</div>
 			<div>{plantData.power}</div>
-			<div>{plantData.energy}</div>
 			<div className={styles.options}>
 				<button onClick={() => editingSet(true)}>edit</button>
 				<button onClick={handleDelete}>delete</button>
@@ -177,7 +174,6 @@ function PowerplantList({}) {
 			<div className={styles.tablehead}>
 				<SortButton text="Name" column="name" preferAscending={true}/>
 				<SortButton text="Nominal power" column="power" preferAscending={false}/>
-				<SortButton text="Energy" column="energy" preferAscending={false}/>
 			</div>
 			{displayData.map(plantData => <Powerplant refresh={refresh} plantData={plantData} key={plantData.id}/>)}
 			<AddPowerplant refresh={refresh}/>
