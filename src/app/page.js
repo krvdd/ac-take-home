@@ -35,32 +35,27 @@ function deletePowerplant(id) {
 
 // table
 
-function TextInput({value, valueSet, validate, placeholder}) {
-	const cls = !validate || validate(value) ? '' : styles.invalid;
-	return <input type="text" className={cls} value={value} size={value.length || 1} placeholder={placeholder} onChange={(e) => valueSet(e.target.value)}/>;
-}
-
 function EditPowerplant({ plantData, ok, cancel }) {
 	const [name, nameSet] = useState(plantData.name);
 	const [power, powerSet] = useState(plantData.power);
 	
-	const shouldCancel = !name || isNaN(power) || (name == plantData.name && power == plantData.power);
+	const valid = name && !isNaN(power) && (name != plantData.name || power != plantData.power);
 	
-	function validate(v) {
-		return !isNaN(v);
+	function handleSubmit(v) {
+		if(valid) ok({name, power: Number(power)});
 	}
 	
-	function handleSubmit() {
-		if(shouldCancel) cancel();
-		else ok({name, power: Number(power)});
-	}
+	const cls = isNaN(power) ? styles.invalid : '';
 	
 	return (
-		<div className={styles.row}>
-			<TextInput value={name} valueSet={nameSet} placeholder="Name..."/>
-			<TextInput value={power} valueSet={powerSet} validate={validate} placeholder="0"/>
-			<button onClick={handleSubmit}>{shouldCancel ? 'cancel' : 'save'}</button>
-		</div>
+		<form className={styles.row} action={handleSubmit}>
+			<input name="name" type="text" value={name} size={name.length || 1} placeholder="Name..." onChange={(e) => nameSet(e.target.value)}/>
+			<input className={cls} name="power" type="text" value={power} size={power.length || 1} placeholder="0" onChange={(e) => powerSet(e.target.value)}/>
+			<div className={styles.options}>
+				<button type="submit" disabled={!valid}>save</button>
+				<button onClick={() => cancel()}>cancel</button>
+			</div>
+		</form>
 	);
 }
 
@@ -104,7 +99,7 @@ function Powerplant({ refresh, plantData }) {
 	return (
 		<div className={styles.row}>
 			<div>{plantData.name}</div>
-			<div>{plantData.power}</div>
+			<div>{plantData.power} kW</div>
 			<div className={styles.options}>
 				<button onClick={() => editingSet(true)}>edit</button>
 				<button onClick={handleDelete}>delete</button>
@@ -129,7 +124,6 @@ function PowerplantList({}) {
 	
 	function refresh(promise) {
 		refreshingSet(true);
-		console.log("yes");
 		if(promise) promise.then(() => refreshCountSet(refreshCount + 1));
 		else refreshCountSet(refreshCount + 1);
 	}
