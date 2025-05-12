@@ -23,9 +23,10 @@ db.serialize(() => {
 			power REAL NOT NULL)`);
 });
 
-function validatePlant(plant) {
+function normalizePlant(plant) {
 	if(!plantValid(plant))
 		throw 'malformed input';
+	plant.name = plant.name.trim();
 	return plant;
 }
 
@@ -52,7 +53,7 @@ export function get_plants() {
 }
 
 export function add_plant(plant) {
-	const { name, power } = validatePlant(plant);
+	const { name, power } = normalizePlant(plant);
 	return run(
 		`INSERT INTO plants (name, power) VALUES (?, ?)`,
 		[name, power]
@@ -60,7 +61,7 @@ export function add_plant(plant) {
 }
 
 export function put_plant(id, plant) {
-	const { name, power } = validatePlant(plant);
+	const { name, power } = normalizePlant(plant);
 	return run(
 		`UPDATE plants SET name = ?, power = ? WHERE id = ?`,
 		[name, power, id]
