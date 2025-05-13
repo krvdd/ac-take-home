@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart } from 'chart.js/auto'; 
 import Papa from 'papaparse';
+import 'chartjs-adapter-date-fns';
 
 
 // api wrappers
 
-function fetchPowerplants() {
+function getPowerplants() {
 	return fetch('api/powerplants');
 }
 
@@ -30,6 +31,18 @@ function putPowerplant(id, plant) {
 
 function deletePowerplant(id) {
 	return fetch(`api/powerplants/${id}`, {method: 'DELETE'});
+}
+
+function getReadings(id) {
+	return fetch(`api/readings/${id}`);
+}
+
+function putReadings(id, data) {
+	return fetch(`api/readings/${id}`, {
+		method: 'PUT',
+		headers: {'Content-Type': 'application/json'},
+		body: JSON.stringify(data)
+	});
 }
 
 
@@ -77,7 +90,7 @@ function AddPowerplant({ refresh }) {
 	return <button onClick={() => addingSet(true)}>add</button>;
 }
 
-function Powerplant({ refresh, plantData }) {
+function Powerplant({ refresh, plantData, handleDelete, openReadings }) {
 	const [editing, editingSet] = useState(false);
 	
 	function cancel() {
@@ -89,20 +102,16 @@ function Powerplant({ refresh, plantData }) {
 		refresh(putPowerplant(plantData.id, plant));
 	}
 	
-	function handleDelete() {
-		refresh(deletePowerplant(plantData.id));
-	}
-	
 	if(editing)
 		return <EditPowerplant plantData={plantData} ok={ok} cancel={cancel}/>
 	
 	return (
 		<div className={styles.row}>
-			<div>{plantData.name}</div>
+			<a href="#" onClick={() => openReadings(plantData)}>{plantData.name}</a>
 			<div>{plantData.power} kW</div>
 			<div className={styles.options}>
 				<button onClick={() => editingSet(true)}>edit</button>
-				<button onClick={handleDelete}>delete</button>
+				<button onClick={() => handleDelete(plantData)}>delete</button>
 			</div>
 		</div>
 	);
@@ -113,30 +122,10 @@ function SortDirectionIndicator({active, ascending}) {
 	return <div className={styles.sortdirection}>{active ? dir : '\u2261'}</div>
 }
 
-function PowerplantList({}) {
-	
-	const [data, dataSet] = useState([]);
+function PowerplantList({ data, refresh, refreshing, handleDelete, openReadings }) {
 	
 	const [sortkey, sortkeySet] = useState('id');
 	const [sortAscending, sortAscendingSet] = useState(true);
-	const [refreshCount, refreshCountSet] = useState(1);
-	const [refreshing, refreshingSet] = useState(true);
-	
-	function refresh(promise) {
-		refreshingSet(true);
-		if(promise) promise.then(() => refreshCountSet(refreshCount + 1));
-		else refreshCountSet(refreshCount + 1);
-	}
-	
-	useEffect(() => {
-		const count = refreshCount;
-		fetchPowerplants()
-			.then(res => res.json())
-			.then(json => {
-				dataSet(json)
-				refreshingSet(false);
-			})
-	}, [refreshCount]);
 	
 	const displayData = data.toSorted((a, b) => {
 		if(a[sortkey] === b[sortkey]) return 0;
@@ -172,7 +161,14 @@ function PowerplantList({}) {
 				<SortButton text="Name" column="name" preferAscending={true}/>
 				<SortButton text="Nominal power" column="power" preferAscending={false}/>
 			</div>
-			{displayData.map(plantData => <Powerplant refresh={refresh} plantData={plantData} key={plantData.id}/>)}
+			{displayData.map(plantData =>
+				<Powerplant
+					refresh={refresh}
+					plantData={plantData}
+					handleDelete={handleDelete}
+					openReadings={openReadings}
+					key={plantData.id}
+				/>)}
 			<AddPowerplant refresh={refresh}/>
 		</div>
 	);
@@ -193,34 +189,59 @@ function parse_csv(file) {
 	});
 }
 
-function PlantChart({}) {
+function PlantChart({plant}) {
 	
-	const [data, dataChanged] = useState([]);
+	const [data, dataSet] = useState({time: [], power: [], energy: []});
+	const [refreshCount, refreshCountSet] = useState(1);
+	const [refreshing, refreshingSet] = useState(true);
+	
+	useEffect(() => {
+		getReadings(plant.id)
+			.then(res => res.json())
+			.then(json => {
+				dataSet(json)
+				refreshingSet(false);
+			})
+	}, [plant, refreshCount]);
+	
+	function refresh() {
+		refreshCountSet(refreshCount + 1);
+	}
 	
 	const options = {
 		maintainAspectRatio: false,
 		responsive: true,
+		scales: {x: {type: 'timeseries'}},
 	};
 	
 	function handleFile(e) {
+		refreshingSet(true);
 		for(const file of e.target.files)
 			parse_csv(file).then((result) => {
-				const power = result.data.map(({timestamp, active_power_kW}) => ({x: timestamp, y: active_power_kW}));
-				const energy = result.data.map(({timestamp, energy_kWh}) => ({x: timestamp, y: energy_kWh}));
-				dataChanged([{label: file.name, data: power}]);
-			});
+				const time = result.data.map(({timestamp, active_power_kW}) => timestamp);
+				const power = result.data.map(({timestamp, active_power_kW}) => Number(active_power_kW));
+				const energy = result.data.map(({timestamp, energy_kWh}) => Number(energy_kWh));
+				return putReadings(plant.id, {time, power, energy});
+			}).then(() => refresh());
+		e.target.value = null;
 	}
 	
+	const {time, power, energy} = data;
+	const power_data = power.map((y, i) => ({x: time[i], y}));
+	const energy_data = energy.map((y, i) => ({x: time[i], y}));
 	return <div className={styles.chart}>
-		<input type="file" onChange={handleFile}/>
+		<h1> {plant.name} </h1>
 		<div className={styles.chartcontainer}>
 			<Line
-				datasetIdKey='id'
 				options={options}
 				data={{
-					datasets: data
+					datasets: [
+						{label: 'Power (kW)', data: power_data, borderColor: '#28f'},
+						{label: 'energy (kWh)', data: energy_data, borderColor: '#f54'},
+					]
 				}}/>
 		</div>
+		<input id="files" type="file" accept=".csv" multiple onChange={handleFile}/>
 	</div>;
 }
 
@@ -229,10 +250,45 @@ function PlantChart({}) {
 
 export default function Home() {
 	
+	const [data, dataSet] = useState([]);
+	const [chartPlant, chartPlantSet] = useState(null);
+	const [refreshCount, refreshCountSet] = useState(1);
+	const [refreshing, refreshingSet] = useState(true);
+	
+	function refresh(but_first) {
+		refreshingSet(true);
+		if(but_first) but_first.then(() => refreshCountSet(refreshCount + 1));
+		else refreshCountSet(refreshCount + 1);
+	}
+	
+	useEffect(() => {
+		getPowerplants()
+			.then(res => res.json())
+			.then(json => {
+				dataSet(json)
+				refreshingSet(false);
+			})
+	}, [refreshCount]);
+	
+	function openReadings(plant) {
+		chartPlantSet(plant)
+	}
+	
+	function handleDelete(plant) {
+		if(chartPlant == plant) chartPlantSet(null);
+		refresh(deletePowerplant(plant.id));
+	}
+	
 	return (
 		<div className={styles.page}>
-			<PowerplantList/>
-			<PlantChart/>
+			<PowerplantList
+				data={data}
+				refresh={refresh}
+				refreshing={refreshing}
+				openReadings={openReadings}
+				handleDelete={handleDelete}
+			/>
+			{ chartPlant ? <PlantChart plant={chartPlant}/> : '' }
 		</div>
 	);
 }
