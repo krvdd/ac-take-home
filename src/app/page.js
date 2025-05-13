@@ -218,9 +218,9 @@ function PlantChart({plant}) {
 		refreshingSet(true);
 		for(const file of e.target.files)
 			parse_csv(file).then((result) => {
-				const time = result.data.map(({timestamp, active_power_kW}) => timestamp);
-				const power = result.data.map(({timestamp, active_power_kW}) => Number(active_power_kW));
-				const energy = result.data.map(({timestamp, energy_kWh}) => Number(energy_kWh));
+				const time = result.data.map(({timestamp}) => timestamp);
+				const power = result.data.map(({active_power_kW}) => Number(active_power_kW));
+				const energy = result.data.map(({energy_kWh}) => Number(energy_kWh));
 				return putReadings(plant.id, {time, power, energy});
 			}).then(() => refresh());
 		e.target.value = null;
@@ -229,20 +229,22 @@ function PlantChart({plant}) {
 	const {time, power, energy} = data;
 	const power_data = power.map((y, i) => ({x: time[i], y}));
 	const energy_data = energy.map((y, i) => ({x: time[i], y}));
-	return <div className={styles.chart}>
-		<h1> {plant.name} </h1>
-		<div className={styles.chartcontainer}>
-			<Line
-				options={options}
-				data={{
-					datasets: [
-						{label: 'Power (kW)', data: power_data, borderColor: '#28f'},
-						{label: 'energy (kWh)', data: energy_data, borderColor: '#f54'},
-					]
-				}}/>
+	return (
+		<div className={styles.chart}>
+			<h1> {plant.name} </h1>
+			<div className={styles.chartcontainer}>
+				<Line
+					options={options}
+					data={{
+						datasets: [
+							{label: 'Power (kW)', data: power_data, borderColor: '#28f'},
+							{label: 'energy (kWh)', data: energy_data, borderColor: '#f54'},
+						]
+					}}/>
+			</div>
+			<input id="files" type="file" accept=".csv" multiple onChange={handleFile}/>
 		</div>
-		<input id="files" type="file" accept=".csv" multiple onChange={handleFile}/>
-	</div>;
+	);
 }
 
 
