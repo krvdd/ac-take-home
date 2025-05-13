@@ -40,10 +40,13 @@ db.exec(`
 
 	CREATE TABLE IF NOT EXISTS readings (
 		plant INTEGER NOT NULL REFERENCES plants,
+		sample_priority INTEGER NOT NULL,
 		time INTEGER NOT NULL,
 		power REAL NOT NULL,
 		energy REAL NOT NULL
 	) STRICT;
+	
+	CREATE INDEX IF NOT EXISTS idx_readings_plant_time ON readings(plant, time);
 `);
 
 function normalizePlant(plant) {
@@ -53,18 +56,25 @@ function normalizePlant(plant) {
 	return plant;
 }
 
+function get_sample_priority() {
+	// this is better than naive subsampling because it avoids aliasing.
+	// you'd want to compute this from the curvature at each sample point.
+	// or just use an actual time-series database.
+	return Math.random() * 2**32 >> 0;
+}
+
 export function get_plants() {
 	return db.prepare(`SELECT * FROM plants`).all();
 }
 
 export function add_plant(plant) {
 	const { name, power } = normalizePlant(plant);
-	return db.prepare(`INSERT INTO plants (name, power) VALUES (?, ?)`).run(name, power);
+	db.prepare(`INSERT INTO plants (name, power) VALUES (?, ?)`).run(name, power);
 }
 
 export function put_plant(id, plant) {
 	const { name, power } = normalizePlant(plant);
-	return db.prepare(`UPDATE plants SET name = ?, power = ? WHERE id = ?`).run(name, power, id);
+	db.prepare(`UPDATE plants SET name = ?, power = ? WHERE id = ?`).run(name, power, id);
 }
 
 export function delete_plant(id) {
@@ -74,8 +84,16 @@ export function delete_plant(id) {
 	})();
 }
 
-export function get_readings(id) {
-	const data = db.prepare(`SELECT time, power, energy FROM readings WHERE plant = ? ORDER BY time ASC`).all(id);
+export function get_readings(id, start, end) {
+	const data = db.prepare(`
+		SELECT time, power, energy FROM (
+			SELECT * FROM readings
+			WHERE plant = ? AND time BETWEEN ? AND ?
+			ORDER BY sample_priority DESC
+			LIMIT 2000
+		)
+		ORDER BY time ASC
+	`).all(id, start, end);
 	const time = data.map(({time}) => time);
 	const power = data.map(({power}) => power);
 	const energy = data.map(({energy}) => energy);
@@ -93,19 +111,19 @@ export function put_readings(id, data) {
 		throw 'malformed input';
 	
 	if(n === 0) return;
-
+	
 	const timestamps = time.map((t) => Date.parse(t));
 	if(timestamps.some(Number.isNaN)) throw 'invalid timestamp';
-
+	
 	const start = Math.min(...timestamps);
 	const end = Math.max(...timestamps);
 
 	const del = db.prepare(`DELETE FROM readings WHERE plant = ? AND time BETWEEN ? AND ?`);
-	const insert = db.prepare(`INSERT INTO readings (plant, time, power, energy) VALUES (?, ?, ?, ?)`);
-
+	const insert = db.prepare(`INSERT INTO readings (plant, sample_priority, time, power, energy) VALUES (?, ?, ?, ?, ?)`);
+	
 	db.transaction(() => {
 		del.run(id, start, end);
 		for(let i = 0; i < n; i++)
-			insert.run(id, timestamps[i], power[i], energy[i]);
+			insert.run(id, get_sample_priority(), timestamps[i], power[i], energy[i]);
 	})();
 }
