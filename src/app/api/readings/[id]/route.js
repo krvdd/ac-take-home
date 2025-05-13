@@ -3,7 +3,7 @@ import { get_readings, put_readings } from '@/data.js'
 
 export async function GET(req, {params}) {
 	const {id} = await params;
-	return NextResponse.json(get_readings(id, 0, 18446744073709551615));
+	return NextResponse.json(get_readings(id));
 }
 
 export async function PUT(req, {params}) {

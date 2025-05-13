@@ -33,8 +33,9 @@ function deletePowerplant(id) {
 	return fetch(`api/powerplants/${id}`, {method: 'DELETE'});
 }
 
-function getReadings(id) {
-	return fetch(`api/readings/${id}`);
+function getReadings(id, t0) {
+	if(!t0) return fetch(`api/readings/${id}`);
+	return fetch(`api/readings/${id}/${t0}`);
 }
 
 function putReadings(id, data) {
@@ -189,20 +190,35 @@ function parse_csv(file) {
 	});
 }
 
+	function monthsAgo(n) {
+		const date = new Date();
+		date.setHours(0, 0, 0, 0);
+		date.setMonth(date.getMonth() - n);
+		return date.toISOString();
+	}
+	
+	function daysAgo(n) {
+		const date = new Date();
+		date.setHours(0, 0, 0, 0);
+		date.setDate(date.getDate() - n);
+		return date.toISOString();
+	}
+	
 function PlantChart({plant}) {
 	
 	const [data, dataSet] = useState({time: [], power: [], energy: []});
 	const [refreshCount, refreshCountSet] = useState(1);
 	const [refreshing, refreshingSet] = useState(true);
+	const [timeWindow, timeWindowSet] = useState('');
 	
 	useEffect(() => {
-		getReadings(plant.id)
+		getReadings(plant.id, timeWindow)
 			.then(res => res.json())
 			.then(json => {
 				dataSet(json)
 				refreshingSet(false);
 			})
-	}, [plant, refreshCount]);
+	}, [plant, refreshCount, timeWindow]);
 	
 	function refresh() {
 		refreshCountSet(refreshCount + 1);
@@ -241,6 +257,14 @@ function PlantChart({plant}) {
 							{label: 'energy (kWh)', data: energy_data, borderColor: '#f54'},
 						]
 					}}/>
+			</div>
+			<div className={styles.options}>
+			<button>all</button>
+			<button onClick={() => timeWindowSet(monthsAgo(12*5))}>5 years</button>
+			<button onClick={() => timeWindowSet(monthsAgo(12))}>1 year</button>
+			<button onClick={() => timeWindowSet(monthsAgo(1))}>1 month</button>
+			<button onClick={() => timeWindowSet(daysAgo(7))}>1 week</button>
+			<button onClick={() => timeWindowSet(daysAgo(1))}>1 day</button>
 			</div>
 			<input id="files" type="file" accept=".csv" multiple onChange={handleFile}/>
 		</div>

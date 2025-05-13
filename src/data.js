@@ -57,10 +57,17 @@ function normalizePlant(plant) {
 }
 
 function get_sample_priority() {
-	// this is better than naive subsampling because it avoids aliasing.
-	// you'd want to compute this from the curvature at each sample point.
+	// this is better than naive sampling because it avoids aliasing.
+	// but ideally you'd want to compute priorities from the curvature at each sample point.
 	// or just use an actual time-series database.
 	return Math.random() * 2**32 >> 0;
+}
+
+function parseOptionalDate(date, defaultValue) {
+	if(!date) return defaultValue;
+	const timestamp = Date.parse(date);
+	if(Number.isNaN(timestamp)) throw "invalid timestamp";
+	return timestamp;
 }
 
 export function get_plants() {
@@ -84,7 +91,11 @@ export function delete_plant(id) {
 	})();
 }
 
-export function get_readings(id, start, end) {
+export function get_readings(id, t0, t1) {
+	
+	const start = parseOptionalDate(t0, 0);
+	const end = parseOptionalDate(t1, 18446744073709551615);
+	
 	const data = db.prepare(`
 		SELECT time, power, energy FROM (
 			SELECT * FROM readings
@@ -94,9 +105,11 @@ export function get_readings(id, start, end) {
 		)
 		ORDER BY time ASC
 	`).all(id, start, end);
+	
 	const time = data.map(({time}) => time);
 	const power = data.map(({power}) => power);
 	const energy = data.map(({energy}) => energy);
+	
 	return {time, power, energy};
 }
 

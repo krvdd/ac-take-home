@@ -10,7 +10,7 @@ Built with React, Node.js, Next.js, and SQLite
 - PUSH `/api/powerplants` adds a new plant.
 - PUT `/api/powerplants/:id` modifies an existing plant.
 - DELETE `/api/powerplants/:id` deletes a plant.
-- GET `/api/readings/:id` retrieves power and energy readings for a plant.
+- GET `/api/readings/:id/[:t0]` retrieves power and energy readings for a plant. Always returns fewer than 2000 samples.
 - PUT `/api/readings/:id` updates readings for a plant.
 
 The functionality is implemented in `src/data.js`
@@ -33,4 +33,3 @@ The only issue I encountered was the line color reverting to grey sometimes. I f
 - There is a moment after modifications where the old data still shows. I hide this by lowering the opacity using css.
 - Its a bit unusual to allow multiple rows to be edited at a time. I might change it.
 - Having both power and energy on the same axis may not be appropriate. I don't know enough about engineering to say.
-- I should add functionality to select a time window for the chart (day,month,year,all).
