@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Take home task
 
-## Getting Started
+Run with `npm install; npm run build; npm start`
 
-First, run the development server:
+Built with React, Node.js, Next.js, and SQLite
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## API
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- GET `/api/powerplants` retrieves the list of power plants from the database.
+- PUSH `/api/powerplants` adds a new plant.
+- PUT `/api/powerplants/:id` modifies an existing plant.
+- DELETE `/api/powerplants/:id` deletes a plant.
+- GET `/api/readings/:id` retrieves power and energy readings for a plant.
+- PUT `/api/readings/:id` updates readings for a plant.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+The functionality is implemented in `src/data.js`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The actual endpoints are in `src/app/api/powerplants/route.js` and `src/app/api/powerplants/[id]/route.js`
+Which I hate, but I didn't find a good way of changing it.
 
-## Learn More
+## UI
+Implemented in `src/app/page.js`
 
-To learn more about Next.js, take a look at the following resources:
+- `Home` renders the page and also contains logic for loading the powerplants
+- `PowerplantList()` and `Powerplant()` are responsible for rendering the table
+- `EditPowerplant` renders the form for editing plants
+- `PlantChart` loads readings and renders the chart
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The experience with Chart.js was relatively painless.
+The only issue I encountered was the line color reverting to grey sometimes. I fixed it by explicitly setting the color.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Notes
+- There is a moment after modifications where the old data still shows. I hide this by lowering the opacity using css.
+- Its a bit unusual to allow multiple rows to be edited at a time. I might change it.
+- Having both power and energy on the same axis may not be appropriate. I don't know enough about engineering to say.
+- I should add line decimation and functionality to select a time window for the chart (day,month,year,all). Right now it just renders everything, which is a bad idea.
