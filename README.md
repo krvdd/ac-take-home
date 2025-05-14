@@ -31,5 +31,6 @@ The only issue I encountered was the line color reverting to grey sometimes. I f
 
 ### Notes
 - There is a moment after modifications where the old data still shows. I hide this by lowering the opacity using css.
-- Its a bit unusual to allow multiple rows to be edited at a time. I might change it.
 - Having both power and energy on the same axis may not be appropriate. I don't know enough about engineering to say.
+- The time window selection is restrictive. It would be nice to have a slider for it.
+- I should add a button to load demo data

@@ -73,47 +73,18 @@ function EditPowerplant({ plantData, ok, cancel }) {
 	);
 }
 
-function AddPowerplant({ refresh }) {
-	const [adding, addingSet] = useState(false);
-	
-	function cancel() {
-		addingSet(false);
-	}
-	
-	function ok(plant) {
-		addingSet(false);
-		refresh(postPowerplant(plant));
-	}
-	
-	if(adding)
-		return <EditPowerplant plantData={{name: '', power: ''}} ok={ok} cancel={cancel}/>
-	
-	return <button onClick={() => addingSet(true)}>add</button>;
-}
-
-function Powerplant({ refresh, plantData, handleDelete, openReadings }) {
-	const [editing, editingSet] = useState(false);
-	
-	function cancel() {
-		editingSet(false);
-	}
-	
-	function ok(plant) {
-		editingSet(false);
-		refresh(putPowerplant(plantData.id, plant));
-	}
-	
-	if(editing)
-		return <EditPowerplant plantData={plantData} ok={ok} cancel={cancel}/>
+function Powerplant({ plantData, showOptions, handleEdit, handleDelete, openReadings }) {
 	
 	return (
 		<div className={styles.row}>
 			<a href="#" onClick={() => openReadings(plantData)}>{plantData.name}</a>
 			<div>{plantData.power} kW</div>
-			<div className={styles.options}>
-				<button onClick={() => editingSet(true)}>edit</button>
-				<button onClick={() => handleDelete(plantData)}>delete</button>
-			</div>
+			{showOptions
+			? <div className={styles.options}>
+					<button disabled={!handleEdit} onClick={() => handleEdit(plantData)}>edit</button>
+					<button onClick={() => handleDelete(plantData)}>delete</button>
+				</div>
+			: ''}
 		</div>
 	);
 }
@@ -127,6 +98,7 @@ function PowerplantList({ data, refresh, refreshing, handleDelete, openReadings 
 	
 	const [sortkey, sortkeySet] = useState('id');
 	const [sortAscending, sortAscendingSet] = useState(true);
+	const [editPlant, editPlantSet] = useState(null);
 	
 	const displayData = data.toSorted((a, b) => {
 		if(a[sortkey] === b[sortkey]) return 0;
@@ -150,7 +122,70 @@ function PowerplantList({ data, refresh, refreshing, handleDelete, openReadings 
 				setOrder(column, preferAscending);
 		}
 		
-		return <button className={styles.sortbutton} onClick={toggle}>{text}<SortDirectionIndicator active={sortkey === column} ascending={sortAscending}/></button>;
+		return (
+			<button className={styles.sortbutton} onClick={toggle}>
+				{text}
+				<SortDirectionIndicator active={sortkey === column} ascending={sortAscending}/>
+			</button>
+		);
+	}
+	
+	function Head({}) {
+		return (
+			<div className={styles.row}>
+				<SortButton text="Name" column="name" preferAscending={true}/>
+				<SortButton text="Nominal power" column="power" preferAscending={false}/>
+			</div>
+		);
+	}
+	
+	function Row({plantData}) {
+		
+		function ok(plant) {
+			editPlantSet(null);
+			refresh(putPowerplant(plantData.id, plant));
+		}
+		
+		function cancel() {
+			editPlantSet(null);
+		}
+		
+		if(editPlant == plantData)
+			return <EditPowerplant plantData={plantData} ok={ok} cancel={cancel}/>;
+		
+		function handleEdit() {
+			editPlantSet(plantData)
+		}
+		
+		return (
+			<Powerplant
+				plantData={plantData}
+				showOptions={editPlant === null}
+				handleEdit={handleEdit}
+				handleDelete={handleDelete}
+				openReadings={openReadings}
+			/>
+		);
+	}
+	
+	function Foot({}) {
+		
+		function cancel() {
+			editPlantSet(null);
+		}
+		
+		function ok(plant) {
+			editPlantSet(null);
+			refresh(postPowerplant(plant));
+		}
+		
+		if(editPlant === 'add')
+			return <EditPowerplant plantData={{name: '', power: ''}} ok={ok} cancel={cancel}/>
+		
+		if(editPlant)
+			return '';
+		
+		return <button onClick={() => editPlantSet('add')}>add</button>;
 	}
 	
 	let cls = styles.plants;
@@ -158,19 +193,10 @@ function PowerplantList({ data, refresh, refreshing, handleDelete, openReadings 
 	
 	return (
 		<div className={cls}>
-			<div className={styles.row}>
-				<SortButton text="Name" column="name" preferAscending={true}/>
-				<SortButton text="Nominal power" column="power" preferAscending={false}/>
-			</div>
+			<Head/>
 			{displayData.map(plantData =>
-				<Powerplant
-					refresh={refresh}
-					plantData={plantData}
-					handleDelete={handleDelete}
-					openReadings={openReadings}
-					key={plantData.id}
-				/>)}
-			<AddPowerplant refresh={refresh}/>
+				<Row plantData={plantData} key={plantData.id}/>)}
+			<Foot/>
 		</div>
 	);
 }
@@ -190,20 +216,20 @@ function parse_csv(file) {
 	});
 }
 
-	function monthsAgo(n) {
-		const date = new Date();
-		date.setHours(0, 0, 0, 0);
-		date.setMonth(date.getMonth() - n);
-		return date.toISOString();
-	}
-	
-	function daysAgo(n) {
-		const date = new Date();
-		date.setHours(0, 0, 0, 0);
-		date.setDate(date.getDate() - n);
-		return date.toISOString();
-	}
-	
+function monthsAgo(n) {
+	const date = new Date();
+	date.setHours(0, 0, 0, 0);
+	date.setMonth(date.getMonth() - n);
+	return date.toISOString();
+}
+
+function daysAgo(n) {
+	const date = new Date();
+	date.setHours(0, 0, 0, 0);
+	date.setDate(date.getDate() - n);
+	return date.toISOString();
+}
+
 function PlantChart({plant}) {
 	
 	const [data, dataSet] = useState({time: [], power: [], energy: []});
@@ -259,7 +285,7 @@ function PlantChart({plant}) {
 					}}/>
 			</div>
 			<div className={styles.options}>
-			<button>all</button>
+			<button onClick={() => timeWindowSet('')}>all</button>
 			<button onClick={() => timeWindowSet(monthsAgo(12*5))}>5 years</button>
 			<button onClick={() => timeWindowSet(monthsAgo(12))}>1 year</button>
 			<button onClick={() => timeWindowSet(monthsAgo(1))}>1 month</button>
