@@ -1,5 +1,5 @@
 'use client';
-import styles from "./page.module.css";
+import styles from "@/styles.module.css";
 import { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart } from 'chart.js/auto'; 
@@ -94,7 +94,7 @@ function SortDirectionIndicator({active, ascending}) {
 	return <div className={styles.sortdirection}>{active ? dir : '\u2261'}</div>
 }
 
-function PowerplantList({ data, refresh, refreshing, handleDelete, openReadings }) {
+function PowerplantList({ data, loading, handleDelete, handlePutPlant, handlePostPlant, openReadings }) {
 	
 	const [sortkey, sortkeySet] = useState('id');
 	const [sortAscending, sortAscendingSet] = useState(true);
@@ -102,8 +102,12 @@ function PowerplantList({ data, refresh, refreshing, handleDelete, openReadings 
 	
 	const displayData = data.toSorted((a, b) => {
 		if(a[sortkey] === b[sortkey]) return 0;
-		return a[sortkey] < b[sortkey] === sortAscending ? -1 : 1;
+		return (a[sortkey] < b[sortkey]) === sortAscending ? -1 : 1;
 	});
+	
+	function cancel() {
+		editPlantSet(null);
+	}
 	
 	function setOrder(column, ascending) {
 		sortkeySet(column);
@@ -143,11 +147,7 @@ function PowerplantList({ data, refresh, refreshing, handleDelete, openReadings 
 		
 		function ok(plant) {
 			editPlantSet(null);
-			refresh(putPowerplant(plantData.id, plant));
-		}
-		
-		function cancel() {
-			editPlantSet(null);
+			handlePutPlant(plantData.id, plant);
 		}
 		
 		if(editPlant == plantData)
@@ -170,13 +170,9 @@ function PowerplantList({ data, refresh, refreshing, handleDelete, openReadings 
 	
 	function Foot({}) {
 		
-		function cancel() {
-			editPlantSet(null);
-		}
-		
 		function ok(plant) {
 			editPlantSet(null);
-			refresh(postPowerplant(plant));
+			handlePostPlant(plant);
 		}
 		
 		if(editPlant === 'add')
@@ -189,7 +185,7 @@ function PowerplantList({ data, refresh, refreshing, handleDelete, openReadings 
 	}
 	
 	let cls = styles.plants;
-	if(refreshing) cls += ' ' + styles.loading;
+	if(loading) cls += ' ' + styles.loading;
 	
 	return (
 		<div className={cls}>
@@ -305,12 +301,11 @@ export default function Home() {
 	const [data, dataSet] = useState([]);
 	const [chartPlant, chartPlantSet] = useState(null);
 	const [refreshCount, refreshCountSet] = useState(1);
-	const [refreshing, refreshingSet] = useState(true);
+	const [loading, loadingSet] = useState(true);
 	
-	function refresh(but_first) {
-		refreshingSet(true);
-		if(but_first) but_first.then(() => refreshCountSet(refreshCount + 1));
-		else refreshCountSet(refreshCount + 1);
+	function refresh_after(promise) {
+		loadingSet(true);
+		promise.then(() => refreshCountSet(refreshCount + 1));
 	}
 	
 	useEffect(() => {
@@ -318,7 +313,7 @@ export default function Home() {
 			.then(res => res.json())
 			.then(json => {
 				dataSet(json)
-				refreshingSet(false);
+				loadingSet(false);
 			})
 	}, [refreshCount]);
 	
@@ -328,17 +323,26 @@ export default function Home() {
 	
 	function handleDelete(plant) {
 		if(chartPlant == plant) chartPlantSet(null);
-		refresh(deletePowerplant(plant.id));
+		refresh_after(deletePowerplant(plant.id));
+	}
+	
+	function handlePostPlant(plant) {
+		refresh_after(postPowerplant(plant));
+	}
+	
+	function handlePutPlant(id, plant) {
+		refresh_after(putPowerplant(id, plant));
 	}
 	
 	return (
 		<div className={styles.page}>
 			<PowerplantList
 				data={data}
-				refresh={refresh}
-				refreshing={refreshing}
+				loading={loading}
 				openReadings={openReadings}
 				handleDelete={handleDelete}
+				handlePutPlant={handlePutPlant}
+				handlePostPlant={handlePostPlant}
 			/>
 			{ chartPlant ? <PlantChart plant={chartPlant}/> : '' }
 		</div>
