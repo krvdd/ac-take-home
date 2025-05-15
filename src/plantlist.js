@@ -1,6 +1,18 @@
 import styles from "@/styles.module.css";
 import { useState } from 'react';
 
+function TextInput({ name, value, valueSet, invalid, placeholder }) {
+	return  <input
+		className={invalid ? styles.invalid : ''}
+		name={name}
+		type="text"
+		value={value}
+		size={value.length || 1}
+		placeholder={placeholder}
+		onChange={(e) => valueSet(e.target.value)}
+	/>;
+}
+
 function EditPowerplant({ plantData, ok, cancel }) {
 	const [name, nameSet] = useState(plantData.name);
 	const [power, powerSet] = useState(plantData.power);
@@ -11,12 +23,10 @@ function EditPowerplant({ plantData, ok, cancel }) {
 		if(valid) ok({name, power: Number(power)});
 	}
 	
-	const cls = isNaN(power) ? styles.invalid : '';
-	
 	return (
 		<form className={styles.row} action={handleSubmit}>
-			<input name="name" type="text" value={name} size={name.length || 1} placeholder="Name..." onChange={(e) => nameSet(e.target.value)}/>
-			<input className={cls} name="power" type="text" value={power} size={power.length || 1} placeholder="0" onChange={(e) => powerSet(e.target.value)}/>
+			<TextInput name="name" value={name} valueSet={nameSet} placeholder="Name..."/>
+			<TextInput name="power" value={power} valueSet={powerSet} placeholder="0" invalid={isNaN(power)}/>
 			<div className={styles.options}>
 				<button type="submit" disabled={!valid}>save</button>
 				<button onClick={() => cancel()}>cancel</button>
@@ -33,7 +43,7 @@ function Powerplant({ plantData, showOptions, handleEdit, handleDelete, openRead
 			<div>{plantData.power} kW</div>
 			{showOptions
 			? <div className={styles.options}>
-					<button disabled={!handleEdit} onClick={() => handleEdit(plantData)}>edit</button>
+					<button onClick={() => handleEdit(plantData)}>edit</button>
 					<button onClick={() => handleDelete(plantData)}>delete</button>
 				</div>
 			: ''}

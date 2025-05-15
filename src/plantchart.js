@@ -48,7 +48,7 @@ export function PowerplantChart({plant}) {
 	
 	const [data, dataSet] = useState({time: [], power: [], energy: []});
 	const [refreshCount, refreshCountSet] = useState(1);
-	const [refreshing, refreshingSet] = useState(true);
+	const [loading, loadingSet] = useState(true);
 	const [timeWindow, timeWindowSet] = useState('');
 	
 	useEffect(() => {
@@ -56,7 +56,7 @@ export function PowerplantChart({plant}) {
 			.then(res => res.json())
 			.then(json => {
 				dataSet(json)
-				refreshingSet(false);
+				loadingSet(false);
 			})
 	}, [plant, refreshCount, timeWindow]);
 	
@@ -71,7 +71,7 @@ export function PowerplantChart({plant}) {
 	};
 	
 	function handleFile(e) {
-		refreshingSet(true);
+		loadingSet(true);
 		for(const file of e.target.files)
 			parse_csv(file).then((result) => {
 				const time = result.data.map(({timestamp}) => timestamp);
@@ -85,8 +85,12 @@ export function PowerplantChart({plant}) {
 	const {time, power, energy} = data;
 	const power_data = power.map((y, i) => ({x: time[i], y}));
 	const energy_data = energy.map((y, i) => ({x: time[i], y}));
+	
+	let cls = styles.chart;
+	if(loading) cls += ' ' + styles.loading;
+	
 	return (
-		<div className={styles.chart}>
+		<div className={cls}>
 			<h1> {plant.name} </h1>
 			<div className={styles.chartcontainer}>
 				<Line

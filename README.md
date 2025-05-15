@@ -15,22 +15,29 @@ Built with React, Node.js, Next.js, and SQLite
 
 The functionality is implemented in `src/data.js`
 
-The actual endpoints are in `src/app/api/powerplants/route.js` and `src/app/api/powerplants/[id]/route.js`
+The actual endpoints are in `src/app/api/powerplants/route.js`, `src/app/api/powerplants/[id]/route.js`, and `src/app/api/readings/[id]/route.js`
 Which I hate, but I didn't find a good way of changing it.
 
-## UI
-Implemented in `src/app/page.js`
+## Table (`src/plantlist.js`)
 
-- `Home` renders the page and also contains logic for loading the powerplants
-- `PowerplantList()` and `Powerplant()` are responsible for rendering the table
-- `EditPowerplant` renders the form for editing plants
-- `PlantChart` loads readings and renders the chart
+- `Powerplant` renders a single table row
+- `EditPowerplant` renders a row in an editable state
+- `PowerplantList` renders a table and keeps track of which row is being edited. The data is managed by the caller.
 
-The experience with Chart.js was relatively painless.
-The only issue I encountered was the line color reverting to grey sometimes. I fixed it by explicitly setting the color.
+## Chart (`src/plantchart.js`)
 
-### Notes
-- There is a moment after modifications where the old data still shows. I hide this by lowering the opacity using css.
+`PowerplantChart` renders a chart using Chart.js and a few buttons to change the time window and to upload a csv.
+
+There are a few minor issues with the way Chart.js formats dates.
+I also encountered an issue where the line color would revert to grey sometimes. I fixed it by explicitly setting the color.
+
+## Page (`src/app/page.js`)
+
+- manages the data for the table
+- keeps track of which readings should be displayed
+
+## Notes
+- There is a moment after modifications where old data still shows. I hide this by lowering the opacity using css.
 - Having both power and energy on the same axis may not be appropriate. I don't know enough about engineering to say.
 - The time window selection is restrictive. It would be nice to have a slider for it.
 - I should add a button to load demo data
